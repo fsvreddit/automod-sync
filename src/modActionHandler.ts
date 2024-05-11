@@ -14,7 +14,7 @@ export async function handleModAction (event: ModAction, context: TriggerContext
     console.log(`WikiRevise: ${event.moderator.name} edited a wiki page.`);
 
     const redisKey = "lastrevisionchecked";
-    const lastVersionProcessed = await context.redis.get(redisKey) ?? "";
+    const lastVersionProcessed = await context.redis.get(redisKey);
     let wikiPage: WikiPage;
     try {
         wikiPage = await context.reddit.getWikiPage(event.subreddit.name, "config/automoderator");
