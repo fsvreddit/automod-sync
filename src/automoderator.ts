@@ -1,5 +1,6 @@
 import {TriggerContext, WikiPage} from "@devvit/public-api";
 import _ from "lodash";
+import regexEscape from "regex-escape";
 
 export async function getAutomodConfigFromSubreddit (subredditName: string, context: TriggerContext): Promise<string[]> {
     let automodPage: WikiPage;
@@ -91,7 +92,8 @@ export async function updateSharedRules (subredditName: string, context: Trigger
     for (let rule of rules) {
         const includeRuleDetails = includeStatementMatches(rule);
         if (includeRuleDetails) {
-            const ruleToInsert = automodForSub[includeRuleDetails.subredditName].find(x => x.startsWith(`#share ${includeRuleDetails.ruleName}`));
+            const regex = new RegExp(`^#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`);
+            const ruleToInsert = automodForSub[includeRuleDetails.subredditName].find(x => regex.test(x));
             if (ruleToInsert) {
                 const newRule = ruleToInsert.replace(`#share ${includeRuleDetails.ruleName}`, `#include ${includeRuleDetails.subredditName} ${includeRuleDetails.ruleName}\r\n# This Automod rule has been synchronised from /r/${includeRuleDetails.subredditName}. Edits made on this copy may be lost.`);
                 if (rule !== newRule) {
@@ -108,7 +110,7 @@ export async function updateSharedRules (subredditName: string, context: Trigger
 
     if (atLeastOneRuleUpdated) {
         await saveAutomodConfigToSubreddit(subredditName, newRules, context);
-        console.log("Automod has been updated!");
+        console.log("Rule Sync: Automod has been updated!");
     }
 
     return atLeastOneRuleUpdated;

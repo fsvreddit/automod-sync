@@ -7,7 +7,9 @@
   "dependencies": {
     "@devvit/public-api": "0.10.20",
     "@types/lodash": "^4.17.1",
-    "lodash": "^4.17.21"
+    "@types/regex-escape": "^3.4.1",
+    "lodash": "^4.17.21",
+    "regex-escape": "^3.4.10"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.62.0",
