@@ -2,6 +2,7 @@
 
 import {Devvit} from "@devvit/public-api";
 import {updateSharedRules} from "./automoderator.js";
+import {handleModAction} from "./modActionHandler.js";
 
 Devvit.addMenuItem({
     location: "subreddit",
@@ -16,6 +17,11 @@ Devvit.addMenuItem({
             context.ui.showToast("No Automod rules needed updating.");
         }
     },
+});
+
+Devvit.addTrigger({
+    event: "ModAction",
+    onEvent: handleModAction,
 });
 
 Devvit.configure({

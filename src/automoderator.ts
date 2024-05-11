@@ -68,14 +68,14 @@ type AutomodForSub = {
     [subreddit: string]: string[]
 }
 
-export async function updateSharedRules (subredditName: string, context: TriggerContext) {
+export async function updateSharedRules (subredditName: string, context: TriggerContext): Promise<boolean> {
     const rules = await getAutomodConfigFromSubreddit(subredditName, context);
     const newRules: string[] = [];
     const subredditsToReadConfigFrom = _.uniq(_.compact(rules.map(includeStatementMatches)).map(result => result.subredditName));
 
     if (subredditsToReadConfigFrom.length === 0) {
         console.log("Automod does not contain any valid include directives.");
-        return;
+        return false;
     }
 
     const automodForSub: AutomodForSub = {};
