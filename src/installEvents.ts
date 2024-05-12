@@ -8,10 +8,9 @@ export async function handleAppInstallOrUpgrade (_: AppInstall | AppUpgrade, con
 
     // Choose a randomised schedule per install. Run every hour.
     const minute = Math.floor(Math.random() * 60);
-    const cron = `${minute} * * * *`;
 
     await context.scheduler.runJob({
         name: "updateSharedRulesJob",
-        cron,
+        cron: `${minute} * * * *`,
     });
 }

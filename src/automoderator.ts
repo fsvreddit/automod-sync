@@ -1,4 +1,4 @@
-import {ScheduledJobEvent, TriggerContext, WikiPage} from "@devvit/public-api";
+import {MenuItemOnPressEvent, ScheduledJobEvent, TriggerContext, WikiPage, Context} from "@devvit/public-api";
 import _ from "lodash";
 import regexEscape from "regex-escape";
 import {getSettingsFromSubreddit} from "./settings.js";
@@ -143,6 +143,28 @@ export async function updateSharedRules (context: TriggerContext): Promise<boole
     return atLeastOneRuleUpdated;
 }
 
-export async function updateSharedRulesJob (event: ScheduledJobEvent, context: TriggerContext) {
+export async function synchroniseAutomodMenuHandler (_: MenuItemOnPressEvent, context: Context) {
+    const currentUser = await context.reddit.getCurrentUser();
+    if (!currentUser) {
+        context.ui.showToast("An error occurred");
+        return;
+    }
+
+    const currentSubreddit = await context.reddit.getCurrentSubreddit();
+    const currentUserPermissions = await currentUser.getModPermissionsForSubreddit(currentSubreddit.name);
+    if (!currentUserPermissions.includes("all") || !currentUserPermissions.includes("config") || !currentUserPermissions.includes("wiki")) {
+        context.ui.showToast("You do not have permissions to manage AutoModerator on this subreddit");
+        return;
+    }
+
+    const rulesUpdated = await updateSharedRules(context);
+    if (rulesUpdated) {
+        context.ui.showToast({text: "Automod has been updated.", appearance: "success"});
+    } else {
+        context.ui.showToast("No Automod rules needed updating.");
+    }
+}
+
+export async function updateSharedRulesJob (_: ScheduledJobEvent, context: TriggerContext) {
     await updateSharedRules(context);
 }
