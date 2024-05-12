@@ -27,7 +27,7 @@ export async function handleModAction (event: ModAction, context: TriggerContext
         return;
     }
 
-    const rulesUpdated = await updateSharedRules(event.subreddit.name, context);
+    const rulesUpdated = await updateSharedRules(context);
     if (rulesUpdated) {
         console.log("WikiRevise: At least one automod rule was updated by sync task.");
     } else {

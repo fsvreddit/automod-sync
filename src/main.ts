@@ -1,7 +1,7 @@
 // Visit developers.reddit.com/docs to learn Devvit!
 
 import {Devvit} from "@devvit/public-api";
-import {updateSharedRules} from "./automoderator.js";
+import {updateSharedRules, updateSharedRulesJob} from "./automoderator.js";
 import {handleModAction} from "./modActionHandler.js";
 import {appSettings, saveSettingsToWiki} from "./settings.js";
 
@@ -12,8 +12,7 @@ Devvit.addMenuItem({
     label: "Automod Thing",
     forUserType: "moderator",
     onPress: async (event, context) => {
-        const subreddit = await context.reddit.getCurrentSubreddit();
-        const rulesUpdated = await updateSharedRules(subreddit.name, context);
+        const rulesUpdated = await updateSharedRules(context);
         if (rulesUpdated) {
             context.ui.showToast({text: "Automod has been updated.", appearance: "success"});
         } else {
@@ -30,6 +29,11 @@ Devvit.addTrigger({
 Devvit.addSchedulerJob({
     name: "saveSettingsToWiki",
     onRun: saveSettingsToWiki,
+});
+
+Devvit.addSchedulerJob({
+    name: "updateSharedRulesJob",
+    onRun: updateSharedRulesJob,
 });
 
 Devvit.configure({

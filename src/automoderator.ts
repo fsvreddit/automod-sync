@@ -1,4 +1,4 @@
-import {TriggerContext, WikiPage} from "@devvit/public-api";
+import {ScheduledJobEvent, TriggerContext, WikiPage} from "@devvit/public-api";
 import _ from "lodash";
 import regexEscape from "regex-escape";
 import {getSettingsFromSubreddit} from "./settings.js";
@@ -88,8 +88,9 @@ type AutomodForSub = {
     [subreddit: string]: string[]
 }
 
-export async function updateSharedRules (subredditName: string, context: TriggerContext): Promise<boolean> {
-    const rules = await getAutomodConfigFromSubreddit(subredditName, context);
+export async function updateSharedRules (context: TriggerContext): Promise<boolean> {
+    const thisSubreddit = await context.reddit.getCurrentSubreddit();
+    const rules = await getAutomodConfigFromSubreddit(thisSubreddit.name, context);
     const newRules: string[] = [];
     const subredditsToReadConfigFrom = _.uniq(_.compact(rules.map(includeStatementMatches)).map(result => result.subredditName));
 
@@ -102,7 +103,7 @@ export async function updateSharedRules (subredditName: string, context: Trigger
 
     for (const subreddit of subredditsToReadConfigFrom) {
         const otherSubSharingSettings = await getSettingsFromSubreddit(subreddit, context);
-        if (!otherSubSharingSettings.enableSharingToAll && otherSubSharingSettings.subList.some(sub => sub.toLowerCase() === subredditName.toLowerCase())) {
+        if (!otherSubSharingSettings.enableSharingToAll && otherSubSharingSettings.subList.some(sub => sub.toLowerCase() === thisSubreddit.name.toLowerCase())) {
             // Other sub has not allowed sharing with this one, so store an empty ruleset.
             automodForSub[subreddit] = [];
             continue;
@@ -135,9 +136,13 @@ export async function updateSharedRules (subredditName: string, context: Trigger
     }
 
     if (atLeastOneRuleUpdated) {
-        await saveAutomodConfigToSubreddit(subredditName, newRules, context);
+        await saveAutomodConfigToSubreddit(thisSubreddit.name, newRules, context);
         console.log("Rule Sync: Automod has been updated!");
     }
 
     return atLeastOneRuleUpdated;
+}
+
+export async function updateSharedRulesJob (event: ScheduledJobEvent, context: TriggerContext) {
+    await updateSharedRules(context);
 }
