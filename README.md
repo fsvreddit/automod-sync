@@ -20,6 +20,11 @@ This tells the app to pull in the rule from /r/fsvsandbox with the name "Profani
 
 Both the sharing and receiving subreddit need to have Automod Sync installed.
 
+Rules are synchronized:
+* When you update your sub's automoderator page and include a new #include directive
+* When you choose the option "Synchronize Automoderator" from the subreddit ... menu
+* Once per hour, if any shared rules have been updated on the subreddits that are hosting them
+
 ## Privacy controls
 
 By default, sharing is disabled. In the app settings you can choose to make rules shareable to any subreddit that knows the name of the rule you're sharing, or provide a list of subreddits (comma separated, not case sensitive) that you are happy to share rules with.
