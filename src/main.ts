@@ -3,6 +3,9 @@
 import {Devvit} from "@devvit/public-api";
 import {updateSharedRules} from "./automoderator.js";
 import {handleModAction} from "./modActionHandler.js";
+import {appSettings, saveSettingsToWiki} from "./settings.js";
+
+Devvit.addSettings(appSettings);
 
 Devvit.addMenuItem({
     location: "subreddit",
@@ -22,6 +25,11 @@ Devvit.addMenuItem({
 Devvit.addTrigger({
     event: "ModAction",
     onEvent: handleModAction,
+});
+
+Devvit.addSchedulerJob({
+    name: "saveSettingsToWiki",
+    onRun: saveSettingsToWiki,
 });
 
 Devvit.configure({

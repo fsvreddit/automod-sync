@@ -1,8 +1,15 @@
 import {TriggerContext, WikiPage} from "@devvit/public-api";
 import _ from "lodash";
 import regexEscape from "regex-escape";
+import {getSettingsFromSubreddit} from "./settings.js";
+import {replaceAll} from "./utility.js";
 
-export async function getAutomodConfigFromSubreddit (subredditName: string, context: TriggerContext): Promise<string[]> {
+function normaliseLineEndings (input: string): string {
+    // Automod uses CRLF for some reason. Normal wiki pages use LF.
+    return replaceAll(replaceAll(input, "\r\n", "\n"), "\n", "\r\n");
+}
+
+export async function getAutomodConfigFromSubreddit (subredditName: string, context: TriggerContext, includeNonLiveRules?: boolean): Promise<string[]> {
     let automodPage: WikiPage;
     try {
         automodPage = await context.reddit.getWikiPage(subredditName, "config/automoderator");
@@ -11,9 +18,21 @@ export async function getAutomodConfigFromSubreddit (subredditName: string, cont
         return [];
     }
 
+    let autoModContent = automodPage.content;
+
+    if (includeNonLiveRules) {
+        let nonLivePage: WikiPage;
+        try {
+            nonLivePage = await context.reddit.getWikiPage(subredditName, "automod-sync/shareablerules");
+            autoModContent += `\r\n---\r\n${normaliseLineEndings(nonLivePage.content)}`;
+        } catch {
+            //
+        }
+    }
+
     const allRules: string[] = [];
     let currentRule: string[] = [];
-    for (const line of automodPage.content.split("\n")) {
+    for (const line of autoModContent.split("\n")) {
         if (line.startsWith("---")) {
             // Separator between rules.
             if (currentRule.length > 0) {
@@ -82,7 +101,14 @@ export async function updateSharedRules (subredditName: string, context: Trigger
     const automodForSub: AutomodForSub = {};
 
     for (const subreddit of subredditsToReadConfigFrom) {
-        const otherSubAutomod = await getAutomodConfigFromSubreddit(subreddit, context);
+        const otherSubSharingSettings = await getSettingsFromSubreddit(subreddit, context);
+        if (!otherSubSharingSettings.enableSharingToAll && otherSubSharingSettings.subList.some(sub => sub.toLowerCase() === subredditName.toLowerCase())) {
+            // Other sub has not allowed sharing with this one, so store an empty ruleset.
+            automodForSub[subreddit] = [];
+            continue;
+        }
+
+        const otherSubAutomod = await getAutomodConfigFromSubreddit(subreddit, context, true);
 
         automodForSub[subreddit] = otherSubAutomod;
     }
