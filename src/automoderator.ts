@@ -72,7 +72,7 @@ export async function saveAutomodConfigToSubreddit (subredditName: string, rules
 }
 
 function includeStatementMatches (rule: string) {
-    const includeRegex = /^#include ([\w\d_-]+) (.+)[\r\n$]/;
+    const includeRegex = /^\s*#include ([\w\d_-]+) (.+)[\r\n$]/;
     const matches = rule.match(includeRegex);
     if (!matches || matches.length > 3) {
         return;
@@ -173,7 +173,7 @@ export async function updateSharedRules (context: TriggerContext): Promise<boole
     for (let rule of rules) {
         const includeRuleDetails = includeStatementMatches(rule);
         if (includeRuleDetails) {
-            const regex = new RegExp(`^#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`);
+            const regex = new RegExp(`^\\s*#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`);
             const ruleToInsert = automodForSub[includeRuleDetails.subredditName].find(x => regex.test(x));
             if (ruleToInsert) {
                 const ruleWithActionsPreserved = replacedRuleWithActionsPreserved(rule, ruleToInsert);
