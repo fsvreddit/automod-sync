@@ -16,7 +16,7 @@ e.g.
 
 `#include fsvsandbox Profanity filter`
 
-This tells the app to pull in the rule from /r/fsvsandbox with the name "Profanity filter". Do not edit rules that have been synchronised from other subreddits because they will be overwritten by 
+This tells the app to pull in the rule from /r/fsvsandbox with the name "Profanity filter".
 
 Both the sharing and receiving subreddit need to have Automod Sync installed.
 
