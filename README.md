@@ -33,7 +33,7 @@ Note: there may be formatting differences between the rules on a sharing sub and
 
 ## Sharing rules that aren't in your core AutoMod ruleset
 
-Some subreddits, such as those dedicated to produce libraries of rules may wish to share rules without having them in the main Automod wiki page. In the settings 
+Some subreddits, such as those dedicated to produce libraries of rules may wish to share rules without having them in the main Automod wiki page. In the settings page you can configure a list of wiki pages that will also be checked for when importing rules.
 
 ## Privacy controls
 
