@@ -72,8 +72,9 @@ export async function saveAutomodConfigToSubreddit (subredditName: string, rules
 }
 
 function includeStatementMatches (rule: string) {
-    const includeRegex = /^\s*#include ([\w\d_-]+) (.+)[\r\n$]/;
-    const matches = rule.match(includeRegex);
+    const [firstLine] = normaliseLineEndings(rule).split("\r\n");
+    const includeRegex = /^\s*#include ([\w\d_-]+) (.+)$/;
+    const matches = firstLine.match(includeRegex);
     if (!matches || matches.length > 3) {
         return;
     }
@@ -146,6 +147,8 @@ export async function updateSharedRules (context: TriggerContext): Promise<boole
     const rules = await getAutomodConfigFromSubreddit(thisSubreddit.name, context);
     const newRules: string[] = [];
     const subredditsToReadConfigFrom = _.uniq(_.compact(rules.map(includeStatementMatches)).map(result => result.subredditName));
+
+    console.log(`Rule Sync: Reading from ${subredditsToReadConfigFrom.length} subreddits`);
 
     if (subredditsToReadConfigFrom.length === 0) {
         console.log("Rule Sync: Automod does not contain any valid include directives.");

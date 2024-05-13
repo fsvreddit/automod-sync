@@ -120,7 +120,7 @@ export async function getSettingsFromSubreddit (subredditName: string, context: 
     const ajv = new Ajv.default();
     const validate = ajv.compile(subSharingSettingsSchema);
     if (!validate(settings)) {
-        console.log(`Sub sharing settings invalid: ${ajv.errorsText(validate.errors)}`);
+        console.log(`Sub sharing settings on /r/${subredditName} invalid: ${ajv.errorsText(validate.errors)}`);
         return {
             enableSharingToAll: false,
             subList: [],
