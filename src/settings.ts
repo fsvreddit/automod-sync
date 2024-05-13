@@ -5,6 +5,7 @@ import {addSeconds} from "date-fns";
 export enum AppSetting {
     EnableSharingToAll = "enableSharingToAll",
     SubList = "subList",
+    AlternateWikiPages = "alternateWikiPages",
 }
 
 export const appSettings: SettingsFormField[] = [
@@ -30,6 +31,12 @@ export const appSettings: SettingsFormField[] = [
                     });
                 },
             },
+            {
+                name: AppSetting.AlternateWikiPages,
+                type: "string",
+                label: "Alternate ruleset wiki pages",
+                helpText: "Optional. A list of wiki pages that can also be used to store Automod rulesets for sharing.",
+            },
         ],
     },
 ];
@@ -37,6 +44,7 @@ export const appSettings: SettingsFormField[] = [
 export interface SubSharingSettings {
     enableSharingToAll: boolean,
     subList: string[],
+    alternateWikiPages: string[],
 }
 
 const SETTINGS_WIKI_PAGE = "automod-sync/settings";
@@ -55,6 +63,7 @@ export async function saveSettingsToWiki (_: ScheduledJobEvent, context: Trigger
     const settingsObject: SubSharingSettings = {
         enableSharingToAll: settings[AppSetting.EnableSharingToAll] as boolean ?? false,
         subList: (settings[AppSetting.SubList] as string ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
+        alternateWikiPages: (settings[AppSetting.AlternateWikiPages] as string ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
     };
 
     const wikiSaveOptions = {
@@ -80,11 +89,11 @@ export async function getSettingsFromSubreddit (subredditName: string, context: 
     let wikiPage: WikiPage;
     try {
         wikiPage = await context.reddit.getWikiPage(subredditName, SETTINGS_WIKI_PAGE);
-        console.log(JSON.stringify(wikiPage.content));
     } catch {
         return {
             enableSharingToAll: false,
             subList: [],
+            alternateWikiPages: [],
         };
     }
 
@@ -99,8 +108,13 @@ export async function getSettingsFromSubreddit (subredditName: string, context: 
                 nullable: false,
                 items: {type: "string"},
             },
+            alternateWikiPages: {
+                type: "array",
+                nullable: false,
+                items: {type: "string"},
+            },
         },
-        required: ["enableSharingToAll", "subList"],
+        required: ["enableSharingToAll", "subList", "alternateWikiPages"],
     };
 
     const ajv = new Ajv.default();
@@ -110,6 +124,7 @@ export async function getSettingsFromSubreddit (subredditName: string, context: 
         return {
             enableSharingToAll: false,
             subList: [],
+            alternateWikiPages: [],
         };
     }
 

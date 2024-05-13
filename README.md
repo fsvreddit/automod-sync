@@ -8,7 +8,7 @@ E.g.
 
 `#share Profanity filter`
 
-To include a rule in your AutoModerator ruleset, create an empty rule in your automod configuration starting with an #include directive like this:
+To include a rule from another subreddit in your AutoModerator ruleset, create an empty rule in your automod configuration starting with an #include directive like this:
 
 `#include <subname> <Rule Name or identifier>`
 
@@ -25,6 +25,14 @@ Rules are synchronized:
 * When you choose the option "Synchronize Automoderator" from the subreddit ... menu
 * Once per hour, if any shared rules have been updated on the subreddits that are hosting them
 
+Certain attributes of an AutoMod rule can be amended on your subreddit without being overwritten by the synchronisation process. Action attributes as well as the moderators_exempt and priority attributes can be changed on the receiving subreddit, and will not be overwritten by the synchronisation process even if they change on the subreddit sharing the rule. The full list of attributes that will not be overwritten is `action`, `action_reason`, `set_flair`, `overwrite_flair`, `set_sticky`, `set_nsfw`, `set_spoiler`, `set_contest_mode`, `set_original_content`, `set_suggested_sort`, `set_locked`, `report_reason`, `comment`, `comment_locked`, `comment_stickied`, `modmail`, `modmail_subject`, `message`, `message_subject`, `moderators_exempt`, `priority`.
+
+If you want to return to a fully synchronised rule, simply remove all the action attributes or even blank out the rule except for the #include line.
+
+## Sharing rules that aren't in your core AutoMod ruleset
+
+Some subreddits, such as those dedicated to produce libraries of rules may wish to share rules without having them in the main Automod wiki page. In the settings 
+
 ## Privacy controls
 
-By default, sharing is disabled. In the app settings you can choose to make rules shareable to any subreddit that knows the name of the rule you're sharing, or provide a list of subreddits (comma separated, not case sensitive) that you are happy to share rules with.
+By default, sharing is disabled. In the app settings you can choose to make rules shareable to any subreddit that knows the name of the rule you're sharing, or provide a list of subreddits (comma separated, not case sensitive) that you are happy to share rules with. If you find that a rule fails to synchronise, check the sharing settings to ensure that the subreddit shares its rules.
