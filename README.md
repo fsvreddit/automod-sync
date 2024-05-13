@@ -29,6 +29,8 @@ Certain attributes of an AutoMod rule can be amended on your subreddit without b
 
 If you want to return to a fully synchronised rule, simply remove all the action attributes or even blank out the rule except for the #include line.
 
+Note: there may be formatting differences between the rules on a sharing sub and a sub that #includes that rule. To preserve action attributes, it's necessary to run every rule through a parser which applies its own formatting.
+
 ## Sharing rules that aren't in your core AutoMod ruleset
 
 Some subreddits, such as those dedicated to produce libraries of rules may wish to share rules without having them in the main Automod wiki page. In the settings 
