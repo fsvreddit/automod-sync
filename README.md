@@ -38,3 +38,7 @@ Some subreddits, such as those dedicated to produce libraries of rules may wish 
 ## Privacy controls
 
 By default, sharing is disabled. In the app settings you can choose to make rules shareable to any subreddit that knows the name of the rule you're sharing, or provide a list of subreddits (comma separated, not case sensitive) that you are happy to share rules with. If you find that a rule fails to synchronise, check the sharing settings to ensure that the subreddit shares its rules.
+
+## Version history
+
+v1.0.3: Fixed a bug that prevented rules synchronising in some cases
