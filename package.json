@@ -5,7 +5,7 @@
   "license": "BSD-3-Clause",
   "type": "module",
   "dependencies": {
-    "@devvit/public-api": "0.10.20",
+    "@devvit/public-api": "0.10.22",
     "@types/lodash": "^4.17.1",
     "@types/regex-escape": "^3.4.1",
     "ajv": "^8.13.0",

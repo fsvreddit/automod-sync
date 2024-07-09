@@ -7,7 +7,7 @@ import {parseDocument} from "yaml";
 
 function normaliseLineEndings (input: string): string {
     // Automod uses CRLF for some reason. Normal wiki pages use LF.
-    return replaceAll(replaceAll(input, "\r\n", "\n"), "\n", "\r\n");
+    return replaceAll(input, "\r", "");
 }
 
 export async function getAutomodConfigFromSubreddit (subredditName: string, context: TriggerContext, includeNonLiveRules?: boolean, otherSubSharingSettings?: SubSharingSettings): Promise<string[]> {
@@ -73,7 +73,7 @@ export async function saveAutomodConfigToSubreddit (subredditName: string, rules
 
 function includeStatementMatches (rule: string) {
     const [firstLine] = normaliseLineEndings(rule).split("\r\n");
-    const includeRegex = /^\s*#include ([\w\d_-]+) (.+)$/;
+    const includeRegex = /^\s*#include ([\w\d_-]+) (.+)$/i;
     const matches = firstLine.match(includeRegex);
     if (!matches || matches.length > 3) {
         return;
