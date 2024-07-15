@@ -7,10 +7,12 @@
   "dependencies": {
     "@devvit/public-api": "0.10.22",
     "@types/lodash": "^4.17.1",
+    "@types/pluralize": "^0.0.33",
     "@types/regex-escape": "^3.4.1",
     "ajv": "^8.13.0",
     "date-fns": "^3.6.0",
     "lodash": "^4.17.21",
+    "pluralize": "^8.0.0",
     "regex-escape": "^3.4.10",
     "yaml": "^2.4.2"
   },

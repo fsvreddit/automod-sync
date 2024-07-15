@@ -41,4 +41,9 @@ By default, sharing is disabled. In the app settings you can choose to make rule
 
 ## Version history
 
+v1.1: 
+
+* Rule and subreddit names are now not case sensitive
+* Sends a DM to the person updating Automod or synchronising via a menu if any rule fails to synchronise.
+
 v1.0.3: Fixed a bug that prevented rules synchronising in some cases

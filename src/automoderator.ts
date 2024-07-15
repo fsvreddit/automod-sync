@@ -4,6 +4,7 @@ import regexEscape from "regex-escape";
 import {SubSharingSettings, getSettingsFromSubreddit} from "./settings.js";
 import {replaceAll} from "./utility.js";
 import {parseDocument} from "yaml";
+import pluralize from "pluralize";
 
 function normaliseLineEndings (input: string): string {
     // Automod uses CRLF for some reason. Normal wiki pages use LF.
@@ -26,7 +27,7 @@ export async function getAutomodConfigFromSubreddit (subredditName: string, cont
             let nonLivePage: WikiPage;
             try {
                 nonLivePage = await context.reddit.getWikiPage(subredditName, pagename);
-                autoModContent += `\r\n---\r\n${normaliseLineEndings(nonLivePage.content)}`;
+                autoModContent += `\n---\n${normaliseLineEndings(nonLivePage.content)}`;
             } catch {
                 //
             }
@@ -72,7 +73,7 @@ export async function saveAutomodConfigToSubreddit (subredditName: string, rules
 }
 
 function includeStatementMatches (rule: string) {
-    const [firstLine] = normaliseLineEndings(rule).split("\r\n");
+    const [firstLine] = normaliseLineEndings(rule).split("\n");
     const includeRegex = /^\s*#include ([\w\d_-]+) (.+)$/i;
     const matches = firstLine.match(includeRegex);
     if (!matches || matches.length > 3) {
@@ -117,8 +118,8 @@ function replacedRuleWithActionsPreserved (originalRule: string, ruleToReplaceWi
         "priority",
     ];
 
-    const parsedOriginalRule = parseDocument(replaceAll(originalRule, "\r", ""));
-    const parsedReplacementRule = parseDocument(replaceAll(ruleToReplaceWith, "\r", ""));
+    const parsedOriginalRule = parseDocument(normaliseLineEndings(originalRule));
+    const parsedReplacementRule = parseDocument(normaliseLineEndings(ruleToReplaceWith));
     const originalRuleHasActions = attributesToPreserve.some(action => parsedOriginalRule.has(action));
 
     if (originalRuleHasActions) {
@@ -142,18 +143,40 @@ type AutomodForSub = {
     [subreddit: string]: string[]
 }
 
-export async function updateSharedRules (context: TriggerContext): Promise<boolean> {
+export enum SyncFailureReason {
+    NoIncludes = "noIncludes",
+    SubNotSharing = "subNotSharing",
+    RuleNotFound = "ruleNotFound",
+}
+
+interface RuleSyncResult {
+    subName: string,
+    ruleName: string,
+    success: boolean,
+    reason?: SyncFailureReason,
+    updateNeeded?: boolean
+}
+
+export async function updateSharedRules (context: TriggerContext): Promise<RuleSyncResult[]> {
     const thisSubreddit = await context.reddit.getCurrentSubreddit();
     const rules = await getAutomodConfigFromSubreddit(thisSubreddit.name, context);
     const newRules: string[] = [];
-    const subredditsToReadConfigFrom = _.uniq(_.compact(rules.map(includeStatementMatches)).map(result => result.subredditName));
+    const subredditsToReadConfigFrom = _.uniq(_.compact(rules.map(includeStatementMatches)).map(result => result.subredditName.toLowerCase()));
 
     console.log(`Rule Sync: Reading from ${subredditsToReadConfigFrom.length} subreddits`);
 
     if (subredditsToReadConfigFrom.length === 0) {
         console.log("Rule Sync: Automod does not contain any valid include directives.");
-        return false;
+        return [{
+            subName: thisSubreddit.name,
+            ruleName: "",
+            success: false,
+            reason: SyncFailureReason.NoIncludes,
+        }];
     }
+
+    const syncResult: RuleSyncResult[] = [];
+    const subsNotSharing: string[] = [];
 
     const automodForSub: AutomodForSub = {};
 
@@ -162,6 +185,7 @@ export async function updateSharedRules (context: TriggerContext): Promise<boole
         if (!otherSubSharingSettings.enableSharingToAll && !otherSubSharingSettings.subList.some(sub => sub.toLowerCase() === thisSubreddit.name.toLowerCase())) {
             // Other sub has not allowed sharing with this one, so store an empty ruleset.
             console.log(`Rule Sync: /r/${subreddit} is not sharing rules with /r/${thisSubreddit.name}`);
+            subsNotSharing.push(subreddit);
             automodForSub[subreddit] = [];
             continue;
         }
@@ -171,34 +195,62 @@ export async function updateSharedRules (context: TriggerContext): Promise<boole
         automodForSub[subreddit] = otherSubAutomod;
     }
 
-    let atLeastOneRuleUpdated = false;
-
     for (let rule of rules) {
         const includeRuleDetails = includeStatementMatches(rule);
         if (includeRuleDetails) {
-            const regex = new RegExp(`^\\s*#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`);
-            const ruleToInsert = automodForSub[includeRuleDetails.subredditName].find(x => regex.test(x));
-            if (ruleToInsert) {
-                const ruleWithActionsPreserved = replacedRuleWithActionsPreserved(rule, ruleToInsert);
-                const newRule = ruleWithActionsPreserved.replace(`#share ${includeRuleDetails.ruleName}`, `#include ${includeRuleDetails.subredditName} ${includeRuleDetails.ruleName}\r\n# This Automod rule has been synchronised from /r/${includeRuleDetails.subredditName}. Edits made on this copy may be lost.`);
-                if (rule !== newRule) {
-                    // Rule has changed!
-                    rule = newRule;
-                    atLeastOneRuleUpdated = true;
-                }
+            if (subsNotSharing.includes(includeRuleDetails.subredditName.toLowerCase())) {
+                syncResult.push({
+                    subName: includeRuleDetails.subredditName,
+                    ruleName: includeRuleDetails.ruleName,
+                    success: false,
+                    reason: SyncFailureReason.SubNotSharing,
+                });
             } else {
-                console.log(`No match for ${includeRuleDetails.ruleName} on ${includeRuleDetails.subredditName}`);
+                const regex = new RegExp(`^\\s*#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`, "i");
+                const ruleToInsert = automodForSub[includeRuleDetails.subredditName.toLowerCase()].find(x => regex.test(x));
+                if (ruleToInsert) {
+                    console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on ${includeRuleDetails.subredditName}`);
+                    const newRuleSplit = replacedRuleWithActionsPreserved(rule, ruleToInsert).split("\n");
+                    newRuleSplit.shift();
+                    newRuleSplit.unshift(
+                        `#include ${includeRuleDetails.subredditName} ${includeRuleDetails.ruleName}`,
+                        `# This Automod rule has been synchronised from /r/${includeRuleDetails.subredditName}. Edits made on this copy may be lost.`,
+                    );
+                    const newRule = newRuleSplit.join("\n");
+
+                    let updateNeeded = false;
+                    if (rule !== newRule) {
+                        // Rule has changed!
+                        rule = newRule;
+                        updateNeeded = true;
+                    }
+
+                    syncResult.push({
+                        subName: includeRuleDetails.subredditName,
+                        ruleName: includeRuleDetails.ruleName,
+                        success: true,
+                        updateNeeded,
+                    });
+                } else {
+                    console.log(`Rule Sync: No match for ${includeRuleDetails.ruleName} on ${includeRuleDetails.subredditName}`);
+                    syncResult.push({
+                        subName: includeRuleDetails.subredditName,
+                        ruleName: includeRuleDetails.ruleName,
+                        success: false,
+                        reason: SyncFailureReason.RuleNotFound,
+                    });
+                }
             }
         }
         newRules.push(rule);
     }
 
-    if (atLeastOneRuleUpdated) {
+    if (syncResult.some(result => result.updateNeeded)) {
         await saveAutomodConfigToSubreddit(thisSubreddit.name, newRules, context);
         console.log("Rule Sync: Automod has been updated!");
     }
 
-    return atLeastOneRuleUpdated;
+    return syncResult;
 }
 
 export async function synchroniseAutomodMenuHandler (_: MenuItemOnPressEvent, context: Context) {
@@ -215,12 +267,51 @@ export async function synchroniseAutomodMenuHandler (_: MenuItemOnPressEvent, co
         return;
     }
 
-    const rulesUpdated = await updateSharedRules(context);
-    if (rulesUpdated) {
-        context.ui.showToast({text: "Automod has been updated.", appearance: "success"});
+    const syncResult = await updateSharedRules(context);
+    if (syncResult.length && !syncResult.some(result => !result.success) && syncResult.some(result => result.updateNeeded)) {
+        context.ui.showToast({text: `Automod has been updated. ${syncResult.length} ${pluralize("rule", syncResult.length)} synchronized.`, appearance: "success"});
+    } else if (syncResult.length && !syncResult.some(result => !result.success) && !syncResult.some(result => result.updateNeeded)) {
+        context.ui.showToast({text: "Automod's synchronised rules are already up to date, no changes made.", appearance: "success"});
+    } else if (syncResult.length && syncResult.some(result => !result.success)) {
+        const successfulRules = syncResult.filter(x => x.success).length;
+        const failedRules = syncResult.filter(x => !x.success).length;
+        context.ui.showToast(`${successfulRules} ${pluralize("rule", successfulRules)} synchronized, ${failedRules} failed to sync. Check your messages.`);
+        await sendMessageWithResults(context, currentUser.username, currentSubreddit.name, syncResult);
     } else {
         context.ui.showToast("No Automod rules needed updating.");
     }
+}
+
+export async function sendMessageWithResults (context: TriggerContext, username: string, subreddit: string, syncResult: RuleSyncResult[]) {
+    let message = `Hi /u/${username},\n\nAutomod Sync failed to synchronise one or more rules on /r/${subreddit}.\n\n`;
+
+    if (syncResult.some(result => result.reason === SyncFailureReason.NoIncludes)) {
+        message += "* ❌ No #include directives were found in AutoModerator's config\n\n";
+    } else {
+        for (const sourceSubreddit of _.uniq(syncResult.map(result => result.subName))) {
+            message += `* /r/${sourceSubreddit}\n\n`;
+            const subredditRules = syncResult.filter(result => result.subName === sourceSubreddit);
+            if (subredditRules.some(result => result.reason === SyncFailureReason.SubNotSharing)) {
+                message += "  * ❌ Subreddit is not configured to share Automod rules with this one.\n\n";
+            } else {
+                for (const rule of subredditRules) {
+                    if (rule.success) {
+                        message += `  * "${rule.ruleName}": ✔️ Success\n`;
+                    }
+                    if (rule.reason === SyncFailureReason.RuleNotFound) {
+                        message += `  * "${rule.ruleName}": ❌ Rule not found in subreddit\n`;
+                    }
+                }
+                message += "\n";
+            }
+        }
+    }
+
+    await context.reddit.sendPrivateMessage({
+        subject: `Automod Sync results for /r/${subreddit}`,
+        text: message,
+        to: username,
+    });
 }
 
 export async function updateSharedRulesJob (_: ScheduledJobEvent, context: TriggerContext) {
