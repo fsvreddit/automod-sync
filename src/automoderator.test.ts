@@ -1,6 +1,6 @@
 import {replacedRuleWithActionsPreserved} from "./automoderator.js";
 
-test("Test preservation of actions", () => {
+test("Preservation of actions", () => {
     const existing = `
 #include subname rulename
 title: "My Title"

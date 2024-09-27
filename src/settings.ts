@@ -61,9 +61,9 @@ export async function saveSettingsToWiki (_: ScheduledJobEvent, context: Trigger
 
     const settings = await context.settings.getAll();
     const settingsObject: SubSharingSettings = {
-        enableSharingToAll: settings[AppSetting.EnableSharingToAll] as boolean ?? false,
-        subList: (settings[AppSetting.SubList] as string ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
-        alternateWikiPages: (settings[AppSetting.AlternateWikiPages] as string ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
+        enableSharingToAll: settings[AppSetting.EnableSharingToAll] as boolean | undefined ?? false,
+        subList: (settings[AppSetting.SubList] as string | undefined ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
+        alternateWikiPages: (settings[AppSetting.AlternateWikiPages] as string | undefined ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
     };
 
     const wikiSaveOptions = {

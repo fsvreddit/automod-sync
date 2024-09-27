@@ -76,7 +76,7 @@ export async function saveAutomodConfigToSubreddit (subredditName: string, rules
 function includeStatementMatches (rule: string) {
     const [firstLine] = normaliseLineEndings(rule).split("\n");
     const includeRegex = /^\s*#include (?:\/?r\/)?([\w\d_-]+)( -p)? (.+)$/i;
-    const matches = firstLine.match(includeRegex);
+    const matches = includeRegex.exec(firstLine);
     if (!matches || matches.length > 4) {
         return;
     }
@@ -85,15 +85,14 @@ function includeStatementMatches (rule: string) {
     if (subredditName && ruleName) {
         return {
             subredditName,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             preserveActions: preserveActions !== undefined,
             ruleName: ruleName.trim(),
         };
     }
 }
 
-type YamlNode = {
-    [subreddit: string]: unknown
-}
+type YamlNode = Record<string, unknown>;
 
 export function replacedRuleWithActionsPreserved (originalRule: string, ruleToReplaceWith: string): string {
     const attributesToPreserve = [
@@ -141,9 +140,7 @@ export function replacedRuleWithActionsPreserved (originalRule: string, ruleToRe
     }));
 }
 
-type AutomodForSub = {
-    [subreddit: string]: string[]
-}
+type AutomodForSub = Record<string, string[]>;
 
 export enum SyncFailureReason {
     NoIncludes = "noIncludes",
