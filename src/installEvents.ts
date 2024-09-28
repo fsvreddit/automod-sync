@@ -1,5 +1,5 @@
-import {TriggerContext} from "@devvit/public-api";
-import {AppInstall, AppUpgrade} from "@devvit/protos";
+import { TriggerContext } from "@devvit/public-api";
+import { AppInstall, AppUpgrade } from "@devvit/protos";
 
 export async function handleAppInstallOrUpgrade (_: AppInstall | AppUpgrade, context: TriggerContext) {
     // Clear down existing scheduler jobs, if any, in case a new release changes the schedule

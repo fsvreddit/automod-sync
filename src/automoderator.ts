@@ -1,9 +1,9 @@
-import {MenuItemOnPressEvent, ScheduledJobEvent, TriggerContext, WikiPage, Context} from "@devvit/public-api";
+import { MenuItemOnPressEvent, ScheduledJobEvent, TriggerContext, WikiPage, Context } from "@devvit/public-api";
 import _ from "lodash";
 import regexEscape from "regex-escape";
-import {SubSharingSettings, getSettingsFromSubreddit} from "./settings.js";
-import {replaceAll, replaceSpecialCharacters} from "./utility.js";
-import {parseDocument} from "yaml";
+import { SubSharingSettings, getSettingsFromSubreddit } from "./settings.js";
+import { replaceAll, replaceSpecialCharacters } from "./utility.js";
+import { parseDocument } from "yaml";
 import pluralize from "pluralize";
 
 function normaliseLineEndings (input: string): string {
@@ -150,11 +150,11 @@ export enum SyncFailureReason {
 }
 
 interface RuleSyncResult {
-    subName: string,
-    ruleName: string,
-    success: boolean,
-    reason?: SyncFailureReason,
-    updateNeeded?: boolean
+    subName: string;
+    ruleName: string;
+    success: boolean;
+    reason?: SyncFailureReason;
+    updateNeeded?: boolean;
 }
 
 export async function updateSharedRules (context: TriggerContext): Promise<RuleSyncResult[]> {
@@ -287,9 +287,9 @@ export async function synchroniseAutomodMenuHandler (_: MenuItemOnPressEvent, co
 
     const syncResult = await updateSharedRules(context);
     if (syncResult.length && !syncResult.some(result => !result.success) && syncResult.some(result => result.updateNeeded)) {
-        context.ui.showToast({text: `Automod has been updated. ${syncResult.length} ${pluralize("rule", syncResult.length)} synchronized.`, appearance: "success"});
+        context.ui.showToast({ text: `Automod has been updated. ${syncResult.length} ${pluralize("rule", syncResult.length)} synchronized.`, appearance: "success" });
     } else if (syncResult.length && !syncResult.some(result => !result.success) && !syncResult.some(result => result.updateNeeded)) {
-        context.ui.showToast({text: "Automod's synchronised rules are already up to date, no changes made.", appearance: "success"});
+        context.ui.showToast({ text: "Automod's synchronised rules are already up to date, no changes made.", appearance: "success" });
     } else if (syncResult.length && syncResult.some(result => !result.success)) {
         const successfulRules = syncResult.filter(x => x.success).length;
         const failedRules = syncResult.filter(x => !x.success).length;

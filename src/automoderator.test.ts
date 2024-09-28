@@ -1,4 +1,4 @@
-import {replacedRuleWithActionsPreserved} from "./automoderator.js";
+import { replacedRuleWithActionsPreserved } from "./automoderator.js";
 
 test("Preservation of actions", () => {
     const existing = `
@@ -19,4 +19,10 @@ title: "My New Title"
 
     expect(replacedRuleContainsNewTitle).toBeTruthy();
     expect(replacedRuleContainsSetLocked).toBeTruthy();
+});
+
+test("Replacement of unicode characters lower ranges", () => {
+    const input = "body (regex): [ \"\\U00000400-\\U000004FF+\" ]";
+    const output = replacedRuleWithActionsPreserved(input, input);
+    expect(output).toEqual(input);
 });

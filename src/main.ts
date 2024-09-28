@@ -1,9 +1,9 @@
 // Visit developers.reddit.com/docs to learn Devvit!
 
-import {Devvit} from "@devvit/public-api";
-import {synchroniseAutomodMenuHandler, updateSharedRulesJob} from "./automoderator.js";
-import {handleModAction} from "./modActionHandler.js";
-import {appSettings, saveSettingsToWiki} from "./settings.js";
+import { Devvit } from "@devvit/public-api";
+import { synchroniseAutomodMenuHandler, updateSharedRulesJob } from "./automoderator.js";
+import { handleModAction } from "./modActionHandler.js";
+import { appSettings, saveSettingsToWiki } from "./settings.js";
 
 Devvit.addSettings(appSettings);
 

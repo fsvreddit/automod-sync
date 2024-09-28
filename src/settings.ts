@@ -1,6 +1,6 @@
-import {ScheduledJobEvent, SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel} from "@devvit/public-api";
-import Ajv, {JSONSchemaType} from "ajv";
-import {addSeconds} from "date-fns";
+import { ScheduledJobEvent, SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import Ajv, { JSONSchemaType } from "ajv";
+import { addSeconds } from "date-fns";
 
 export enum AppSetting {
     EnableSharingToAll = "enableSharingToAll",
@@ -42,9 +42,9 @@ export const appSettings: SettingsFormField[] = [
 ];
 
 export interface SubSharingSettings {
-    enableSharingToAll: boolean,
-    subList: string[],
-    alternateWikiPages: string[],
+    enableSharingToAll: boolean;
+    subList: string[];
+    alternateWikiPages: string[];
 }
 
 const SETTINGS_WIKI_PAGE = "automod-sync/settings";
@@ -102,16 +102,16 @@ export async function getSettingsFromSubreddit (subredditName: string, context: 
     const subSharingSettingsSchema: JSONSchemaType<SubSharingSettings> = {
         type: "object",
         properties: {
-            enableSharingToAll: {type: "boolean", nullable: false},
+            enableSharingToAll: { type: "boolean", nullable: false },
             subList: {
                 type: "array",
                 nullable: false,
-                items: {type: "string"},
+                items: { type: "string" },
             },
             alternateWikiPages: {
                 type: "array",
                 nullable: false,
-                items: {type: "string"},
+                items: { type: "string" },
             },
         },
         required: ["enableSharingToAll", "subList", "alternateWikiPages"],

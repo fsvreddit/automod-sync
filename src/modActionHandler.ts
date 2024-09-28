@@ -1,6 +1,6 @@
-import {ModAction} from "@devvit/protos";
-import {TriggerContext, WikiPage} from "@devvit/public-api";
-import {sendMessageWithResults, SyncFailureReason, updateSharedRules} from "./automoderator.js";
+import { ModAction } from "@devvit/protos";
+import { TriggerContext, WikiPage } from "@devvit/public-api";
+import { sendMessageWithResults, SyncFailureReason, updateSharedRules } from "./automoderator.js";
 import pluralize from "pluralize";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
