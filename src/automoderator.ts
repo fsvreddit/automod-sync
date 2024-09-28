@@ -92,8 +92,6 @@ function includeStatementMatches (rule: string) {
     }
 }
 
-type YamlNode = Record<string, unknown>;
-
 export function replacedRuleWithActionsPreserved (originalRule: string, ruleToReplaceWith: string): string {
     const attributesToPreserve = [
         "action",
@@ -121,23 +119,39 @@ export function replacedRuleWithActionsPreserved (originalRule: string, ruleToRe
 
     const parsedOriginalRule = parseDocument(replaceUnicodeTokens(normaliseLineEndings(originalRule)));
     const parsedReplacementRule = parseDocument(replaceUnicodeTokens(normaliseLineEndings(ruleToReplaceWith)));
-    const originalRuleHasActions = attributesToPreserve.some(action => parsedOriginalRule.has(action));
 
-    if (originalRuleHasActions) {
+    if (attributesToPreserve.some(action => parsedOriginalRule.has(action))) {
         // Delete action attributes in the replacement rule
         attributesToPreserve.map(action => parsedReplacementRule.delete(action));
-        const actionsFromOriginalRule = parsedOriginalRule.contents?.toJSON() as YamlNode;
-        for (const entry of Object.entries(actionsFromOriginalRule).filter(entry => attributesToPreserve.includes(entry[0]))) {
-            // Insert action attributes from original rule into replacement rule
-            parsedReplacementRule.set(entry[0], entry[1]);
+        for (const action of attributesToPreserve.filter(action => parsedOriginalRule.has(action))) {
+            const actionValue = parsedOriginalRule.get(action);
+            parsedReplacementRule.set(action, actionValue);
         }
     }
 
-    return restoreUnicodeTokens(normaliseLineEndings(parsedReplacementRule.toString({
+    // Look for child actions of parent_submission and author
+    const childAttributesToPreserve = ["set_flair", "overwrite_flair", "set_sticky", "set_nsfw", "set_spoiler", "set_contest_mode", "set_original_content", "set_suggested_sort", "set_locked", "flair_css_class", "flair_template_id"];
+    for (const parentKey of ["parent_submission", "author"]) {
+        if (childAttributesToPreserve.some(action => parsedOriginalRule.hasIn([parentKey, action]))) {
+            console.log("Found child actions!");
+            childAttributesToPreserve.map(action => parsedReplacementRule.deleteIn([parentKey, action]));
+        }
+
+        for (const action of childAttributesToPreserve.filter(action => parsedOriginalRule.hasIn([parentKey, action]))) {
+            console.log(`Found ${action}`);
+            const actionValue = parsedOriginalRule.getIn([parentKey, action]);
+            console.log(`Value: ${actionValue}`);
+            parsedReplacementRule.setIn([parentKey, action], actionValue);
+        }
+    }
+
+    const stringifyOptions = {
         singleQuote: true,
         indent: 4,
         lineWidth: 0,
-    })));
+    };
+
+    return restoreUnicodeTokens(normaliseLineEndings(parsedReplacementRule.toString(stringifyOptions)));
 }
 
 type AutomodForSub = Record<string, string[]>;

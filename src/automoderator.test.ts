@@ -38,3 +38,27 @@ set_locked: true
     const ruleIncludesUnicodeTokens = ruleToInsert.includes("\\U00000400") && ruleToInsert.includes("\\U000004FF");
     expect(ruleIncludesUnicodeTokens).toBeTruthy();
 });
+
+test("Child replacements work", () => {
+    const existing = `
+#include subname rulename
+type: comment
+body (regex): ["[\\U00000400-\\U000004FF]+"]
+parent_submission:
+    set_flair: ["a", "b"]
+`;
+
+    const incoming = `
+#share rulename
+type: comment
+body (regex): ["[\\U00000400-\\U000004FF]+"]
+parent_submission:
+    set_locked: true
+`;
+
+    const ruleToInsert = replacedRuleWithActionsPreserved(existing, incoming);
+    console.log(ruleToInsert);
+
+    expect(ruleToInsert.includes("set_flair")).toBeTruthy();
+    expect(ruleToInsert.includes("set_locked")).toBeFalsy();
+});
