@@ -2,7 +2,7 @@ import { MenuItemOnPressEvent, ScheduledJobEvent, TriggerContext, WikiPage, Cont
 import _ from "lodash";
 import regexEscape from "regex-escape";
 import { SubSharingSettings, getSettingsFromSubreddit } from "./settings.js";
-import { replaceAll, replaceSpecialCharacters } from "./utility.js";
+import { replaceAll, replaceUnicodeTokens, restoreUnicodeTokens } from "./utility.js";
 import { parseDocument } from "yaml";
 import pluralize from "pluralize";
 
@@ -119,8 +119,8 @@ export function replacedRuleWithActionsPreserved (originalRule: string, ruleToRe
         "priority",
     ];
 
-    const parsedOriginalRule = parseDocument(normaliseLineEndings(originalRule));
-    const parsedReplacementRule = parseDocument(normaliseLineEndings(ruleToReplaceWith));
+    const parsedOriginalRule = parseDocument(replaceUnicodeTokens(normaliseLineEndings(originalRule)));
+    const parsedReplacementRule = parseDocument(replaceUnicodeTokens(normaliseLineEndings(ruleToReplaceWith)));
     const originalRuleHasActions = attributesToPreserve.some(action => parsedOriginalRule.has(action));
 
     if (originalRuleHasActions) {
@@ -133,11 +133,11 @@ export function replacedRuleWithActionsPreserved (originalRule: string, ruleToRe
         }
     }
 
-    return normaliseLineEndings(parsedReplacementRule.toString({
+    return restoreUnicodeTokens(normaliseLineEndings(parsedReplacementRule.toString({
         singleQuote: true,
         indent: 4,
         lineWidth: 0,
-    }));
+    })));
 }
 
 type AutomodForSub = Record<string, string[]>;
@@ -212,9 +212,9 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
                     console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on ${includeRuleDetails.subredditName}`);
                     let newRuleSplit: string[];
                     if (includeRuleDetails.preserveActions) {
-                        newRuleSplit = replaceSpecialCharacters(normaliseLineEndings(ruleToInsert)).split("\n");
+                        newRuleSplit = normaliseLineEndings(ruleToInsert).split("\n");
                     } else {
-                        newRuleSplit = replaceSpecialCharacters(replacedRuleWithActionsPreserved(rule, ruleToInsert)).split("\n");
+                        newRuleSplit = replacedRuleWithActionsPreserved(rule, ruleToInsert).split("\n");
                     }
                     newRuleSplit.shift();
                     const preserveActionsParam = includeRuleDetails.preserveActions ? " -p" : "";

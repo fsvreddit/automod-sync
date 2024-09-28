@@ -1,9 +1,15 @@
-import { replaceSpecialCharacters } from "./utility.js";
+import { replaceUnicodeTokens, restoreUnicodeTokens } from "./utility.js";
 
-test("Replacement of special characters", () => {
-    const input = "# 🏴 is a flag";
-    const expected = "# \\U0001F3F4 is a flag";
+test("Replacement of special characters high values", () => {
+    const input = "# \\U0001F3F4 is a flag";
 
-    const actual = replaceSpecialCharacters(input);
-    expect(actual).toEqual(expected);
+    const actual = restoreUnicodeTokens(replaceUnicodeTokens(input));
+    expect(actual).toEqual(input);
+});
+
+test("Replacement of special characters low values values", () => {
+    const input = "body (regex): [ \"\\U00000400-\\U000004FF+\" ]";
+
+    const actual = restoreUnicodeTokens(replaceUnicodeTokens(input));
+    expect(actual).toEqual(input);
 });

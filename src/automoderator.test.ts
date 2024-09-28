@@ -21,8 +21,20 @@ title: "My New Title"
     expect(replacedRuleContainsSetLocked).toBeTruthy();
 });
 
-test("Replacement of unicode characters lower ranges", () => {
-    const input = "body (regex): [ \"\\U00000400-\\U000004FF+\" ]";
-    const output = replacedRuleWithActionsPreserved(input, input);
-    expect(output).toEqual(input);
+test("Preservation of unicode tokens", () => {
+    const existing = `
+#include subname rulename
+title (regex): ["[\\U00000400-\\U000004FF]+"]
+set_locked: true
+`;
+
+    const incoming = `
+#share rulename
+title (regex): ["[\\U00000400-\\U000004FF]+"]
+set_locked: true
+`;
+
+    const ruleToInsert = replacedRuleWithActionsPreserved(existing, incoming);
+    const ruleIncludesUnicodeTokens = ruleToInsert.includes("\\U00000400") && ruleToInsert.includes("\\U000004FF");
+    expect(ruleIncludesUnicodeTokens).toBeTruthy();
 });
