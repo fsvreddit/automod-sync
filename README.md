@@ -45,7 +45,7 @@ By default, sharing is disabled. In the app settings you can choose to make rule
 
 ## Version history
 
-v1.3:
+v1.2.2:
 
 * Fix issue with other unicode tokens that don't represent emoji
 * Preserves actions under the `parent_submission` or `author` YAML node
