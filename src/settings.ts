@@ -1,6 +1,6 @@
-import {ScheduledJobEvent, SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel} from "@devvit/public-api";
-import Ajv, {JSONSchemaType} from "ajv";
-import {addSeconds} from "date-fns";
+import { ScheduledJobEvent, SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import Ajv, { JSONSchemaType } from "ajv";
+import { addSeconds } from "date-fns";
 
 export enum AppSetting {
     EnableSharingToAll = "enableSharingToAll",
@@ -42,9 +42,9 @@ export const appSettings: SettingsFormField[] = [
 ];
 
 export interface SubSharingSettings {
-    enableSharingToAll: boolean,
-    subList: string[],
-    alternateWikiPages: string[],
+    enableSharingToAll: boolean;
+    subList: string[];
+    alternateWikiPages: string[];
 }
 
 const SETTINGS_WIKI_PAGE = "automod-sync/settings";
@@ -61,9 +61,9 @@ export async function saveSettingsToWiki (_: ScheduledJobEvent, context: Trigger
 
     const settings = await context.settings.getAll();
     const settingsObject: SubSharingSettings = {
-        enableSharingToAll: settings[AppSetting.EnableSharingToAll] as boolean ?? false,
-        subList: (settings[AppSetting.SubList] as string ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
-        alternateWikiPages: (settings[AppSetting.AlternateWikiPages] as string ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
+        enableSharingToAll: settings[AppSetting.EnableSharingToAll] as boolean | undefined ?? false,
+        subList: (settings[AppSetting.SubList] as string | undefined ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
+        alternateWikiPages: (settings[AppSetting.AlternateWikiPages] as string | undefined ?? "").split(",").map(x => x.toLowerCase().trim()).filter(x => x !== ""),
     };
 
     const wikiSaveOptions = {
@@ -102,16 +102,16 @@ export async function getSettingsFromSubreddit (subredditName: string, context: 
     const subSharingSettingsSchema: JSONSchemaType<SubSharingSettings> = {
         type: "object",
         properties: {
-            enableSharingToAll: {type: "boolean", nullable: false},
+            enableSharingToAll: { type: "boolean", nullable: false },
             subList: {
                 type: "array",
                 nullable: false,
-                items: {type: "string"},
+                items: { type: "string" },
             },
             alternateWikiPages: {
                 type: "array",
                 nullable: false,
-                items: {type: "string"},
+                items: { type: "string" },
             },
         },
         required: ["enableSharingToAll", "subList", "alternateWikiPages"],

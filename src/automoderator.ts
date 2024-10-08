@@ -1,9 +1,9 @@
-import {MenuItemOnPressEvent, ScheduledJobEvent, TriggerContext, WikiPage, Context} from "@devvit/public-api";
+import { MenuItemOnPressEvent, ScheduledJobEvent, TriggerContext, WikiPage, Context } from "@devvit/public-api";
 import _ from "lodash";
 import regexEscape from "regex-escape";
-import {SubSharingSettings, getSettingsFromSubreddit} from "./settings.js";
-import {replaceAll, replaceSpecialCharacters} from "./utility.js";
-import {parseDocument} from "yaml";
+import { SubSharingSettings, getSettingsFromSubreddit } from "./settings.js";
+import { replaceAll, replaceUnicodeTokens, restoreUnicodeTokens } from "./utility.js";
+import { parseDocument } from "yaml";
 import pluralize from "pluralize";
 
 function normaliseLineEndings (input: string): string {
@@ -76,7 +76,7 @@ export async function saveAutomodConfigToSubreddit (subredditName: string, rules
 function includeStatementMatches (rule: string) {
     const [firstLine] = normaliseLineEndings(rule).split("\n");
     const includeRegex = /^\s*#include (?:\/?r\/)?([\w\d_-]+)( -p)? (.+)$/i;
-    const matches = firstLine.match(includeRegex);
+    const matches = includeRegex.exec(firstLine);
     if (!matches || matches.length > 4) {
         return;
     }
@@ -85,14 +85,11 @@ function includeStatementMatches (rule: string) {
     if (subredditName && ruleName) {
         return {
             subredditName,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             preserveActions: preserveActions !== undefined,
             ruleName: ruleName.trim(),
         };
     }
-}
-
-type YamlNode = {
-    [subreddit: string]: unknown
 }
 
 export function replacedRuleWithActionsPreserved (originalRule: string, ruleToReplaceWith: string): string {
@@ -120,30 +117,44 @@ export function replacedRuleWithActionsPreserved (originalRule: string, ruleToRe
         "priority",
     ];
 
-    const parsedOriginalRule = parseDocument(normaliseLineEndings(originalRule));
-    const parsedReplacementRule = parseDocument(normaliseLineEndings(ruleToReplaceWith));
-    const originalRuleHasActions = attributesToPreserve.some(action => parsedOriginalRule.has(action));
+    const parsedOriginalRule = parseDocument(replaceUnicodeTokens(normaliseLineEndings(originalRule)));
+    const parsedReplacementRule = parseDocument(replaceUnicodeTokens(normaliseLineEndings(ruleToReplaceWith)));
 
-    if (originalRuleHasActions) {
+    if (attributesToPreserve.some(action => parsedOriginalRule.has(action))) {
         // Delete action attributes in the replacement rule
         attributesToPreserve.map(action => parsedReplacementRule.delete(action));
-        const actionsFromOriginalRule = parsedOriginalRule.contents?.toJSON() as YamlNode;
-        for (const entry of Object.entries(actionsFromOriginalRule).filter(entry => attributesToPreserve.includes(entry[0]))) {
-            // Insert action attributes from original rule into replacement rule
-            parsedReplacementRule.set(entry[0], entry[1]);
+        for (const action of attributesToPreserve.filter(action => parsedOriginalRule.has(action))) {
+            const actionValue = parsedOriginalRule.get(action);
+            parsedReplacementRule.set(action, actionValue);
         }
     }
 
-    return normaliseLineEndings(parsedReplacementRule.toString({
+    // Look for child actions of parent_submission and author
+    const childAttributesToPreserve = ["set_flair", "overwrite_flair", "set_sticky", "set_nsfw", "set_spoiler", "set_contest_mode", "set_original_content", "set_suggested_sort", "set_locked", "flair_css_class", "flair_template_id"];
+    for (const parentKey of ["parent_submission", "author"]) {
+        if (childAttributesToPreserve.some(action => parsedOriginalRule.hasIn([parentKey, action]))) {
+            console.log("Found child actions!");
+            childAttributesToPreserve.map(action => parsedReplacementRule.deleteIn([parentKey, action]));
+        }
+
+        for (const action of childAttributesToPreserve.filter(action => parsedOriginalRule.hasIn([parentKey, action]))) {
+            console.log(`Found ${action}`);
+            const actionValue = parsedOriginalRule.getIn([parentKey, action]);
+            console.log(`Value: ${actionValue}`);
+            parsedReplacementRule.setIn([parentKey, action], actionValue);
+        }
+    }
+
+    const stringifyOptions = {
         singleQuote: true,
         indent: 4,
         lineWidth: 0,
-    }));
+    };
+
+    return restoreUnicodeTokens(normaliseLineEndings(parsedReplacementRule.toString(stringifyOptions)));
 }
 
-type AutomodForSub = {
-    [subreddit: string]: string[]
-}
+type AutomodForSub = Record<string, string[]>;
 
 export enum SyncFailureReason {
     NoIncludes = "noIncludes",
@@ -153,11 +164,11 @@ export enum SyncFailureReason {
 }
 
 interface RuleSyncResult {
-    subName: string,
-    ruleName: string,
-    success: boolean,
-    reason?: SyncFailureReason,
-    updateNeeded?: boolean
+    subName: string;
+    ruleName: string;
+    success: boolean;
+    reason?: SyncFailureReason;
+    updateNeeded?: boolean;
 }
 
 export async function updateSharedRules (context: TriggerContext): Promise<RuleSyncResult[]> {
@@ -215,9 +226,9 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
                     console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on ${includeRuleDetails.subredditName}`);
                     let newRuleSplit: string[];
                     if (includeRuleDetails.preserveActions) {
-                        newRuleSplit = replaceSpecialCharacters(normaliseLineEndings(ruleToInsert)).split("\n");
+                        newRuleSplit = normaliseLineEndings(ruleToInsert).split("\n");
                     } else {
-                        newRuleSplit = replaceSpecialCharacters(replacedRuleWithActionsPreserved(rule, ruleToInsert)).split("\n");
+                        newRuleSplit = replacedRuleWithActionsPreserved(rule, ruleToInsert).split("\n");
                     }
                     newRuleSplit.shift();
                     const preserveActionsParam = includeRuleDetails.preserveActions ? " -p" : "";
@@ -290,9 +301,9 @@ export async function synchroniseAutomodMenuHandler (_: MenuItemOnPressEvent, co
 
     const syncResult = await updateSharedRules(context);
     if (syncResult.length && !syncResult.some(result => !result.success) && syncResult.some(result => result.updateNeeded)) {
-        context.ui.showToast({text: `Automod has been updated. ${syncResult.length} ${pluralize("rule", syncResult.length)} synchronized.`, appearance: "success"});
+        context.ui.showToast({ text: `Automod has been updated. ${syncResult.length} ${pluralize("rule", syncResult.length)} synchronized.`, appearance: "success" });
     } else if (syncResult.length && !syncResult.some(result => !result.success) && !syncResult.some(result => result.updateNeeded)) {
-        context.ui.showToast({text: "Automod's synchronised rules are already up to date, no changes made.", appearance: "success"});
+        context.ui.showToast({ text: "Automod's synchronised rules are already up to date, no changes made.", appearance: "success" });
     } else if (syncResult.length && syncResult.some(result => !result.success)) {
         const successfulRules = syncResult.filter(x => x.success).length;
         const failedRules = syncResult.filter(x => !x.success).length;
