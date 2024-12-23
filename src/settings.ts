@@ -1,4 +1,4 @@
-import { ScheduledJobEvent, SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import { SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import Ajv, { JSONSchemaType } from "ajv";
 import { addSeconds } from "date-fns";
 
