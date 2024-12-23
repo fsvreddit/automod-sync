@@ -9,8 +9,8 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/public-api": "0.11.2",
-    "@devvit/protos": "0.11.2",
+    "@devvit/public-api": "0.11.5",
+    "@devvit/protos": "0.11.5",
     "@types/lodash": "^4.17.1",
     "@types/pluralize": "^0.0.33",
     "@types/regex-escape": "^3.4.1",
