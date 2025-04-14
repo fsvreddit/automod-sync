@@ -9,8 +9,8 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/public-api": "0.11.5",
-    "@devvit/protos": "0.11.5",
+    "@devvit/public-api": "0.11.12",
+    "@devvit/protos": "0.11.12",
     "@types/lodash": "^4.17.1",
     "@types/pluralize": "^0.0.33",
     "@types/regex-escape": "^3.4.1",
@@ -23,11 +23,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
-    "@stylistic/eslint-plugin": "^2.8.0",
+    "@stylistic/eslint-plugin": "^3.0.0",
     "@vitest/eslint-plugin": "^1.1.4",
     "eslint": "^9.9.0",
-    "typescript": "5.5.2",
+    "typescript": "5.3.2",
     "typescript-eslint": "^8.4.0",
-    "vitest": "^2.0.5"
+    "vitest": "^3.0.5"
   }
 }
