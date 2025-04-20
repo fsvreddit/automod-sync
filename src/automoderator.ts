@@ -125,6 +125,7 @@ export function replacedRuleWithActionsPreserved (originalRule: string, ruleToRe
         attributesToPreserve.map(action => parsedReplacementRule.delete(action));
         for (const action of attributesToPreserve.filter(action => parsedOriginalRule.has(action))) {
             const actionValue = parsedOriginalRule.get(action);
+            console.log(`Replacing action ${action} with ${actionValue}`);
             parsedReplacementRule.set(action, actionValue);
         }
     }
@@ -223,12 +224,13 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
                 const regex = new RegExp(`^\\s*#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`, "i");
                 const ruleToInsert = automodForSub[includeRuleDetails.subredditName.toLowerCase()].find(x => regex.test(x));
                 if (ruleToInsert) {
-                    console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on ${includeRuleDetails.subredditName}`);
+                    console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on /r/${includeRuleDetails.subredditName}`);
                     let newRuleSplit: string[];
                     if (includeRuleDetails.preserveActions) {
-                        newRuleSplit = normaliseLineEndings(ruleToInsert).split("\n");
-                    } else {
+                        console.log("Rule Sync: Preserving actions");
                         newRuleSplit = replacedRuleWithActionsPreserved(rule, ruleToInsert).split("\n");
+                    } else {
+                        newRuleSplit = normaliseLineEndings(ruleToInsert).split("\n");
                     }
                     newRuleSplit.shift();
                     const preserveActionsParam = includeRuleDetails.preserveActions ? " -p" : "";

@@ -3,12 +3,14 @@ import { replacedRuleWithActionsPreserved } from "./automoderator.js";
 test("Preservation of actions", () => {
     const existing = `
 #include subname rulename
+priority: -1
 title: "My Title"
 set_locked: true
 `;
 
     const incoming = `
 #share rulename
+priority: -5
 title: "My New Title"
 `;
 
@@ -16,9 +18,11 @@ title: "My New Title"
 
     const replacedRuleContainsNewTitle = ruleToInsert.includes("My New Title");
     const replacedRuleContainsSetLocked = ruleToInsert.includes("set_locked: true");
+    const replacedRuleContainsPriorityMinus5 = ruleToInsert.includes("priority: -1");
 
     expect(replacedRuleContainsNewTitle).toBeTruthy();
     expect(replacedRuleContainsSetLocked).toBeTruthy();
+    expect(replacedRuleContainsPriorityMinus5).toBeTruthy();
 });
 
 test("Preservation of unicode tokens", () => {
