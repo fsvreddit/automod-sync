@@ -1,4 +1,4 @@
-import { ScheduledJobEvent, SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import { SettingsFormField, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import Ajv, { JSONSchemaType } from "ajv";
 import { addSeconds } from "date-fns";
 
@@ -49,7 +49,7 @@ export interface SubSharingSettings {
 
 const SETTINGS_WIKI_PAGE = "automod-sync/settings";
 
-export async function saveSettingsToWiki (_: ScheduledJobEvent, context: TriggerContext) {
+export async function saveSettingsToWiki (_: unknown, context: TriggerContext) {
     const subreddit = await context.reddit.getCurrentSubreddit();
 
     let wikiPage: WikiPage | undefined;

@@ -1,5 +1,5 @@
-import { MenuItemOnPressEvent, ScheduledJobEvent, TriggerContext, WikiPage, Context } from "@devvit/public-api";
-import _ from "lodash";
+import { MenuItemOnPressEvent, TriggerContext, WikiPage, Context } from "@devvit/public-api";
+import { compact, uniq } from "lodash";
 import regexEscape from "regex-escape";
 import { SubSharingSettings, getSettingsFromSubreddit } from "./settings.js";
 import { replaceAll, replaceUnicodeTokens, restoreUnicodeTokens } from "./utility.js";
@@ -125,6 +125,7 @@ export function replacedRuleWithActionsPreserved (originalRule: string, ruleToRe
         attributesToPreserve.map(action => parsedReplacementRule.delete(action));
         for (const action of attributesToPreserve.filter(action => parsedOriginalRule.has(action))) {
             const actionValue = parsedOriginalRule.get(action);
+            console.log(`Replacing action ${action} with ${actionValue}`);
             parsedReplacementRule.set(action, actionValue);
         }
     }
@@ -175,7 +176,7 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
     const thisSubreddit = await context.reddit.getCurrentSubreddit();
     const rules = await getAutomodConfigFromSubreddit(thisSubreddit.name, context);
     const newRules: string[] = [];
-    const subredditsToReadConfigFrom = _.uniq(_.compact(rules.map(includeStatementMatches)).map(result => result.subredditName.toLowerCase()));
+    const subredditsToReadConfigFrom = uniq(compact(rules.map(includeStatementMatches)).map(result => result.subredditName.toLowerCase()));
 
     console.log(`Rule Sync: Reading from ${subredditsToReadConfigFrom.length} subreddits`);
 
@@ -223,12 +224,13 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
                 const regex = new RegExp(`^\\s*#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`, "i");
                 const ruleToInsert = automodForSub[includeRuleDetails.subredditName.toLowerCase()].find(x => regex.test(x));
                 if (ruleToInsert) {
-                    console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on ${includeRuleDetails.subredditName}`);
+                    console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on /r/${includeRuleDetails.subredditName}`);
                     let newRuleSplit: string[];
                     if (includeRuleDetails.preserveActions) {
-                        newRuleSplit = normaliseLineEndings(ruleToInsert).split("\n");
-                    } else {
+                        console.log("Rule Sync: Preserving actions");
                         newRuleSplit = replacedRuleWithActionsPreserved(rule, ruleToInsert).split("\n");
+                    } else {
+                        newRuleSplit = normaliseLineEndings(ruleToInsert).split("\n");
                     }
                     newRuleSplit.shift();
                     const preserveActionsParam = includeRuleDetails.preserveActions ? " -p" : "";
@@ -322,7 +324,7 @@ export async function sendMessageWithResults (context: TriggerContext, username:
     } else if (syncResult.some(result => result.reason === SyncFailureReason.ErrorUpdatingAutomod)) {
         message += "* ❌ An error occurred when trying to write to the Automoderator wiki page.\n\n";
     } else {
-        for (const sourceSubreddit of _.uniq(syncResult.map(result => result.subName))) {
+        for (const sourceSubreddit of uniq(syncResult.map(result => result.subName))) {
             message += `* /r/${sourceSubreddit}\n\n`;
             const subredditRules = syncResult.filter(result => result.subName === sourceSubreddit);
             if (subredditRules.some(result => result.reason === SyncFailureReason.SubNotSharing)) {
@@ -348,6 +350,6 @@ export async function sendMessageWithResults (context: TriggerContext, username:
     });
 }
 
-export async function updateSharedRulesJob (_: ScheduledJobEvent, context: TriggerContext) {
+export async function updateSharedRulesJob (_: unknown, context: TriggerContext) {
     await updateSharedRules(context);
 }

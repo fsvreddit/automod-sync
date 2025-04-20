@@ -45,6 +45,11 @@ By default, sharing is disabled. In the app settings you can choose to make rule
 
 ## Version history
 
+v1.3:
+
+* Fix error saving rules on some subreddits
+* Fix issue where -p flag would be ignored
+
 v1.2.2:
 
 * Fix issue with other unicode tokens that don't represent emoji
