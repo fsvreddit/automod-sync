@@ -4,6 +4,7 @@ import { Devvit } from "@devvit/public-api";
 import { synchroniseAutomodMenuHandler, updateSharedRulesJob } from "./automoderator.js";
 import { handleModAction } from "./modActionHandler.js";
 import { appSettings, saveSettingsToWiki } from "./settings.js";
+import { handleAppInstallOrUpgrade } from "./installEvents.js";
 
 Devvit.addSettings(appSettings);
 
@@ -12,6 +13,11 @@ Devvit.addMenuItem({
     label: "Synchronize Automoderator",
     forUserType: "moderator",
     onPress: synchroniseAutomodMenuHandler,
+});
+
+Devvit.addTrigger({
+    events: ["AppInstall", "AppUpgrade"],
+    onEvent: handleAppInstallOrUpgrade,
 });
 
 Devvit.addTrigger({

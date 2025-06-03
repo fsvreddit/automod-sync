@@ -45,6 +45,10 @@ By default, sharing is disabled. In the app settings you can choose to make rule
 
 ## Version history
 
+v1.3.2:
+
+* Fixed a bug with automatic synchronisation not working when rules are updated on the sharing subreddit
+
 v1.3:
 
 * Fix error saving rules on some subreddits
