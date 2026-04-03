@@ -1,10 +1,10 @@
 import { MenuItemOnPressEvent, TriggerContext, WikiPage, Context } from "@devvit/public-api";
 import { compact, uniq } from "lodash";
-import regexEscape from "regex-escape";
 import { SubSharingSettings, getSettingsFromSubreddit } from "./settings.js";
 import { replaceAll, replaceUnicodeTokens, restoreUnicodeTokens } from "./utility.js";
 import { parseDocument } from "yaml";
 import pluralize from "pluralize";
+import escapeStringRegexp from "escape-string-regexp";
 
 function normaliseLineEndings (input: string): string {
     // Automod uses CRLF for some reason. Normal wiki pages use LF.
@@ -221,7 +221,7 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
                     reason: SyncFailureReason.SubNotSharing,
                 });
             } else {
-                const regex = new RegExp(`^\\s*#share ${regexEscape(includeRuleDetails.ruleName)}[\r\n]`, "i");
+                const regex = new RegExp(`^\\s*#share ${escapeStringRegexp(includeRuleDetails.ruleName)}[\r\n]`, "i");
                 const ruleToInsert = automodForSub[includeRuleDetails.subredditName.toLowerCase()].find(x => regex.test(x));
                 if (ruleToInsert) {
                     console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on /r/${includeRuleDetails.subredditName}`);

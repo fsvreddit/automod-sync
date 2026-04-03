@@ -8,7 +8,7 @@ export async function handleModAction (event: ModAction, context: TriggerContext
         return;
     }
 
-    if (event.moderator.name === context.appName) {
+    if (event.moderator.name === context.appSlug) {
         return;
     }
 
