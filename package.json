@@ -9,20 +9,20 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/protos": "0.12.17",
-    "@devvit/public-api": "0.12.17",
-    "@types/lodash": "^4.17.1",
-    "@types/pluralize": "^0.0.33",
+    "@devvit/protos": "0.12.22",
+    "@devvit/public-api": "0.12.22",
+    "@fsvreddit/fsv-devvit-helpers": "github:fsvreddit/fsv-devvit-helpers",
     "escape-string-regexp": "^5.0.0",
     "ajv": "^8.13.0",
     "date-fns": "^4.0.0",
     "lodash": "^4.17.21",
     "pluralize": "^8.0.0",
-    "regex-escape": "^3.4.10",
     "yaml": "^2.4.2"
   },
   "devDependencies": {
     "@fsvreddit/eslint-config": "github:fsvreddit/eslint-config",
+    "@types/lodash": "^4.17.1",
+    "@types/pluralize": "^0.0.33",
     "eslint": "^10.0.0",
     "typescript": "5.8.3",
     "vitest": "^4.0.0"

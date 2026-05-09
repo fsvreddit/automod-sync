@@ -2,6 +2,7 @@ import { ModAction } from "@devvit/protos";
 import { TriggerContext, WikiPage } from "@devvit/public-api";
 import { sendMessageWithResults, SyncFailureReason, updateSharedRules } from "./automoderator.js";
 import pluralize from "pluralize";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     if (!event.action || event.action !== "wikirevise" || !event.subreddit || !event.moderator) {
@@ -9,6 +10,10 @@ export async function handleModAction (event: ModAction, context: TriggerContext
     }
 
     if (event.moderator.name === context.appSlug) {
+        return;
+    }
+
+    if (await hasTriggerBeenHandled(context.redis, `modAction:${event.moderator.name}:${event.actionedAt?.getTime()}`)) {
         return;
     }
 
