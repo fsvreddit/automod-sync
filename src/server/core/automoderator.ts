@@ -1,20 +1,18 @@
-import { MenuItemOnPressEvent, TriggerContext, WikiPage, Context } from "@devvit/public-api";
+import { context, reddit, WikiPage } from "@devvit/web/server";
 import { compact, uniq } from "lodash";
-import { SubSharingSettings, getSettingsFromSubreddit } from "./settings.js";
-import { replaceAll, replaceUnicodeTokens, restoreUnicodeTokens } from "./utility.js";
+import { SubSharingSettings, getSettingsFromSubreddit, replaceUnicodeTokens, restoreUnicodeTokens } from ".";
 import { parseDocument } from "yaml";
-import pluralize from "pluralize";
 import escapeStringRegexp from "escape-string-regexp";
 
 function normaliseLineEndings (input: string): string {
     // Automod uses CRLF for some reason. Normal wiki pages use LF.
-    return replaceAll(input, "\r", "");
+    return input.replaceAll(/\r/g, "");
 }
 
-export async function getAutomodConfigFromSubreddit (subredditName: string, context: TriggerContext, includeNonLiveRules?: boolean, otherSubSharingSettings?: SubSharingSettings): Promise<string[]> {
+export async function getAutomodConfigFromSubreddit (subredditName: string, includeNonLiveRules?: boolean, otherSubSharingSettings?: SubSharingSettings): Promise<string[]> {
     let automodPage: WikiPage;
     try {
-        automodPage = await context.reddit.getWikiPage(subredditName, "config/automoderator");
+        automodPage = await reddit.getWikiPage(subredditName, "config/automoderator");
     } catch (error) {
         console.log(error);
         return [];
@@ -26,7 +24,7 @@ export async function getAutomodConfigFromSubreddit (subredditName: string, cont
         for (const pagename of otherSubSharingSettings.alternateWikiPages) {
             let nonLivePage: WikiPage;
             try {
-                nonLivePage = await context.reddit.getWikiPage(subredditName, pagename);
+                nonLivePage = await reddit.getWikiPage(subredditName, pagename);
                 autoModContent += `\n---\n${normaliseLineEndings(nonLivePage.content)}`;
             } catch {
                 //
@@ -56,16 +54,16 @@ export async function getAutomodConfigFromSubreddit (subredditName: string, cont
     return allRules;
 }
 
-export async function saveAutomodConfigToSubreddit (subredditName: string, rules: string[], context: TriggerContext) {
+export async function saveAutomodConfigToSubreddit (subredditName: string, rules: string[]) {
     const automodWikiPage = "config/automoderator";
     try {
-        await context.reddit.getWikiPage(subredditName, automodWikiPage);
+        await reddit.getWikiPage(subredditName, automodWikiPage);
     } catch {
         // Automod does not exist.
         throw new Error("Automoderator is not yet set up.");
     }
 
-    await context.reddit.updateWikiPage({
+    await reddit.updateWikiPage({
         subredditName,
         page: automodWikiPage,
         content: rules.join("\n---\n"),
@@ -76,7 +74,8 @@ export async function saveAutomodConfigToSubreddit (subredditName: string, rules
 function includeStatementMatches (rule: string) {
     const [firstLine] = normaliseLineEndings(rule).split("\n");
     const includeRegex = /^\s*#include (?:\/?r\/)?([\w\d_-]+)( -p)? (.+)$/i;
-    const matches = includeRegex.exec(firstLine);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const matches = includeRegex.exec(firstLine!);
     if (!matches || matches.length > 4) {
         return;
     }
@@ -85,7 +84,6 @@ function includeStatementMatches (rule: string) {
     if (subredditName && ruleName) {
         return {
             subredditName,
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             preserveActions: preserveActions !== undefined,
             ruleName: ruleName.trim(),
         };
@@ -172,9 +170,8 @@ interface RuleSyncResult {
     updateNeeded?: boolean;
 }
 
-export async function updateSharedRules (context: TriggerContext): Promise<RuleSyncResult[]> {
-    const thisSubreddit = await context.reddit.getCurrentSubreddit();
-    const rules = await getAutomodConfigFromSubreddit(thisSubreddit.name, context);
+export async function updateSharedRules (): Promise<RuleSyncResult[]> {
+    const rules = await getAutomodConfigFromSubreddit(context.subredditName);
     const newRules: string[] = [];
     const subredditsToReadConfigFrom = uniq(compact(rules.map(includeStatementMatches)).map(result => result.subredditName.toLowerCase()));
 
@@ -183,7 +180,7 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
     if (subredditsToReadConfigFrom.length === 0) {
         console.log("Rule Sync: Automod does not contain any valid include directives.");
         return [{
-            subName: thisSubreddit.name,
+            subName: context.subredditName,
             ruleName: "",
             success: false,
             reason: SyncFailureReason.NoIncludes,
@@ -196,16 +193,16 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
     const automodForSub: AutomodForSub = {};
 
     for (const subreddit of subredditsToReadConfigFrom) {
-        const otherSubSharingSettings = await getSettingsFromSubreddit(subreddit, context);
-        if (!otherSubSharingSettings.enableSharingToAll && !otherSubSharingSettings.subList.some(sub => sub.toLowerCase() === thisSubreddit.name.toLowerCase())) {
+        const otherSubSharingSettings = await getSettingsFromSubreddit(subreddit);
+        if (!otherSubSharingSettings.enableSharingToAll && !otherSubSharingSettings.subList.some(sub => sub.toLowerCase() === context.subredditName.toLowerCase())) {
             // Other sub has not allowed sharing with this one, so store an empty ruleset.
-            console.log(`Rule Sync: /r/${subreddit} is not sharing rules with /r/${thisSubreddit.name}`);
+            console.log(`Rule Sync: /r/${subreddit} is not sharing rules with /r/${context.subredditName}`);
             subsNotSharing.push(subreddit);
             automodForSub[subreddit] = [];
             continue;
         }
 
-        const otherSubAutomod = await getAutomodConfigFromSubreddit(subreddit, context, true, otherSubSharingSettings);
+        const otherSubAutomod = await getAutomodConfigFromSubreddit(subreddit, true, otherSubSharingSettings);
 
         automodForSub[subreddit] = otherSubAutomod;
     }
@@ -222,7 +219,8 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
                 });
             } else {
                 const regex = new RegExp(`^\\s*#share ${escapeStringRegexp(includeRuleDetails.ruleName)}[\r\n]`, "i");
-                const ruleToInsert = automodForSub[includeRuleDetails.subredditName.toLowerCase()].find(x => regex.test(x));
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                const ruleToInsert = automodForSub[includeRuleDetails.subredditName.toLowerCase()]!.find(x => regex.test(x));
                 if (ruleToInsert) {
                     console.log(`Rule Sync: Found rule ${includeRuleDetails.ruleName} on /r/${includeRuleDetails.subredditName}`);
                     let newRuleSplit: string[];
@@ -269,12 +267,12 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
 
     if (syncResult.some(result => result.updateNeeded)) {
         try {
-            await saveAutomodConfigToSubreddit(thisSubreddit.name, newRules, context);
+            await saveAutomodConfigToSubreddit(context.subredditName, newRules);
         } catch (error) {
             console.log("Error saving Automod wiki page");
             console.log(error);
             return [{
-                subName: thisSubreddit.name,
+                subName: context.subredditName,
                 ruleName: "",
                 success: false,
                 reason: SyncFailureReason.ErrorUpdatingAutomod,
@@ -287,36 +285,7 @@ export async function updateSharedRules (context: TriggerContext): Promise<RuleS
     return syncResult;
 }
 
-export async function synchroniseAutomodMenuHandler (_: MenuItemOnPressEvent, context: Context) {
-    const currentUser = await context.reddit.getCurrentUser();
-    if (!currentUser) {
-        context.ui.showToast("An error occurred");
-        return;
-    }
-
-    const currentSubreddit = await context.reddit.getCurrentSubreddit();
-    const currentUserPermissions = await currentUser.getModPermissionsForSubreddit(currentSubreddit.name);
-    if (!currentUserPermissions.includes("all") && (!currentUserPermissions.includes("config") || !currentUserPermissions.includes("wiki"))) {
-        context.ui.showToast("You do not have permissions to manage AutoModerator on this subreddit");
-        return;
-    }
-
-    const syncResult = await updateSharedRules(context);
-    if (syncResult.length && !syncResult.some(result => !result.success) && syncResult.some(result => result.updateNeeded)) {
-        context.ui.showToast({ text: `Automod has been updated. ${syncResult.length} ${pluralize("rule", syncResult.length)} synchronized.`, appearance: "success" });
-    } else if (syncResult.length && !syncResult.some(result => !result.success) && !syncResult.some(result => result.updateNeeded)) {
-        context.ui.showToast({ text: "Automod's synchronised rules are already up to date, no changes made.", appearance: "success" });
-    } else if (syncResult.length && syncResult.some(result => !result.success)) {
-        const successfulRules = syncResult.filter(x => x.success).length;
-        const failedRules = syncResult.filter(x => !x.success).length;
-        context.ui.showToast(`${successfulRules} ${pluralize("rule", successfulRules)} synchronized, ${failedRules} failed to sync. Check your messages.`);
-        await sendMessageWithResults(context, currentUser.username, currentSubreddit.name, syncResult);
-    } else {
-        context.ui.showToast("No Automod rules needed updating.");
-    }
-}
-
-export async function sendMessageWithResults (context: TriggerContext, username: string, subreddit: string, syncResult: RuleSyncResult[]) {
+export async function sendMessageWithResults (username: string, subreddit: string, syncResult: RuleSyncResult[]) {
     let message = `Hi /u/${username},\n\nAutomod Sync failed to synchronise one or more rules on /r/${subreddit}.\n\n`;
 
     if (syncResult.some(result => result.reason === SyncFailureReason.NoIncludes)) {
@@ -343,13 +312,9 @@ export async function sendMessageWithResults (context: TriggerContext, username:
         }
     }
 
-    await context.reddit.sendPrivateMessage({
+    await reddit.sendPrivateMessage({
         subject: `Automod Sync results for /r/${subreddit}`,
         text: message,
         to: username,
     });
-}
-
-export async function updateSharedRulesJob (_: unknown, context: TriggerContext) {
-    await updateSharedRules(context);
 }

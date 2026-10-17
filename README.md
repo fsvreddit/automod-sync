@@ -45,6 +45,10 @@ By default, sharing is disabled. In the app settings you can choose to make rule
 
 ## Version history
 
+v1.3.5:
+
+* Update source code to use the Devvit Web framework
+
 v1.3.4:
 
 * Protect against duplicate updates when the Developer Platform is having issues

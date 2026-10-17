@@ -1,15 +1,66 @@
 {
-  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "automod-sync",
-  "blocks": {
-    "entry": "src/main.ts",
-    "triggers": [
-      "onAppInstall",
-      "onAppUpgrade",
-      "onModAction"
-    ]
-  },
-  "dev": {
-    "subreddit": "automod_sync_dev"
-  }
+    "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+    "name": "automod-sync",
+    "permissions": {
+        "reddit": true
+    },
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite build --watch"
+    },
+    "server": {
+        "dir": "dist/server",
+        "entry": "index.cjs"
+    },
+    "settings": {
+        "subreddit": {
+            "group_SharingOptions": {
+                "type": "group",
+                "label": "Sharing Options",
+                "fields": {
+                    "enableSharingToAll": {
+                        "type": "boolean",
+                        "label": "Enable sharing to any subreddit",
+                        "defaultValue": false
+                    },
+                    "subList": {
+                        "type": "string",
+                        "label": "Subreddits to share with",
+                        "helpText": "Optional. Only applies if enable sharing to any subreddit is disabled. A comma separated list of subreddits, not case sensitive.",
+                        "validationEndpoint": "/internal/validators/save-settings-to-wiki"
+                    },
+                    "alternateWikiPages": {
+                        "type": "string",
+                        "label": "Alternate ruleset wiki pages",
+                        "helpText": "Optional. A list of wiki pages that can also be used to store Automod rulesets for sharing."
+                    }
+                }
+            }
+        }
+    },
+    "triggers": {
+        "onAppInstall": "/internal/triggers/app-install",
+        "onAppUpgrade": "/internal/triggers/app-upgrade",
+        "onModAction": "/internal/triggers/on-mod-action"
+    },
+    "scheduler": {
+        "tasks": {
+            "saveSettingsToWiki": {
+                "endpoint": "/internal/tasks/save-settings-to-wiki"
+            },
+            "updateSharedRules": {
+                "endpoint": "/internal/tasks/update-shared-rules"
+            }
+        }
+    },
+    "menu": {
+        "items": [
+            {
+                "location": "subreddit",
+                "label": "Synchronize Automoderator",
+                "forUserType": "moderator",
+                "endpoint": "/internal/menu/synchronise-automod"
+            }
+        ]
+    }
 }

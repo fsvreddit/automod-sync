@@ -1,7 +1,3 @@
-export function replaceAll (input: string, pattern: string, replacement: string): string {
-    return input.split(pattern).join(replacement);
-}
-
 /**
  * Conceals UNICODE tokens from YAML parser, so that it does not attempt to parse them.
  * Why a duck? Why not! I chose to use a high unicode character here precisely because Automod
@@ -14,7 +10,7 @@ export function replaceUnicodeTokens (input: string): string {
     let output = input;
     const matches = input.matchAll(regex);
     for (const match of matches) {
-        output = replaceAll(output, match[0], `🦆${match[1]}`);
+        output = output.replaceAll(match[0], `🦆${match[1]}`);
     }
 
     return output;
@@ -28,7 +24,7 @@ export function restoreUnicodeTokens (input: string): string {
     let output = input;
     const matches = input.matchAll(regex);
     for (const match of matches) {
-        output = replaceAll(output, match[0], `\\U${match[1]}`);
+        output = output.replaceAll(match[0], `\\U${match[1]}`);
     }
 
     return output;

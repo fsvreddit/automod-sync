@@ -1,3 +1,23 @@
+import { vi } from "vitest";
+
+vi.hoisted(() => {
+    // @ts-expect-error config stub for tests
+    globalThis.devvit = { config: {} };
+});
+
+vi.mock("@devvit/web/server", () => ({
+    context: {
+        subredditId: "t5_test",
+        subredditName: "BotBouncer",
+    },
+    redis: {},
+}));
+
+vi.mock("@fsvreddit/fsv-devvit-web-helpers", () => ({
+    getExtendedDevvit: vi.fn(),
+    hasTriggerBeenHandled: vi.fn(),
+}));
+
 import { replacedRuleWithActionsPreserved } from "./automoderator.js";
 
 test("Preservation of actions", () => {
